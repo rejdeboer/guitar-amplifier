@@ -3,7 +3,12 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
-class AudioPluginAudioProcessor final : public juce::AudioProcessor, juce::AudioProcessorValueTreeState::Listener {
+#include "parameters/globals.h"
+#include "BinaryData.h"
+
+class AudioPluginAudioProcessor final
+    : public juce::AudioProcessor,
+      juce::AudioProcessorValueTreeState::Listener {
    public:
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;
@@ -36,9 +41,12 @@ class AudioPluginAudioProcessor final : public juce::AudioProcessor, juce::Audio
     void setStateInformation(const void* data, int size_in_bytes) override;
 
     juce::AudioProcessorValueTreeState tree_state_;
+    juce::dsp::Convolution speaker_module_;
 
    private:
+    juce::dsp::ProcessSpec spec_;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    void parameterChanged(const juce::String& parameter_id, float new_value) override;
+    void parameterChanged(const juce::String& parameter_id,
+                          float new_value) override;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };

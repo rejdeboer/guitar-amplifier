@@ -15,18 +15,18 @@ add_subdirectory(JUCE)
 # Check the readme at `docs/CMake API.md` in the JUCE repo for the full list.
 
 juce_add_plugin(GuitarAmplifier
-    COMPANY_NAME rejdeboer
-    IS_SYNTH FALSE
-    # NEEDS_MIDI_INPUT TRUE/FALSE               # Does the plugin need midi input?
-    # NEEDS_MIDI_OUTPUT TRUE/FALSE              # Does the plugin need midi output?
-    # IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
-    # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
-    # COPY_PLUGIN_AFTER_BUILD TRUE/FALSE        # Should the plugin be installed to a default location after building?
-    PLUGIN_MANUFACTURER_CODE Juce               # A four-character manufacturer id with at least one upper-case character
-    PLUGIN_CODE Dem0                            # A unique four-character plugin id with exactly one upper-case character
-                                                # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
-    FORMATS AU VST3 Standalone                  # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
-    PRODUCT_NAME "Guitar Amplifier")        # The name of the final executable, which can differ from the target name
+        COMPANY_NAME rejdeboer
+        IS_SYNTH FALSE
+        # NEEDS_MIDI_INPUT TRUE/FALSE               # Does the plugin need midi input?
+        # NEEDS_MIDI_OUTPUT TRUE/FALSE              # Does the plugin need midi output?
+        # IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
+        # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
+        COPY_PLUGIN_AFTER_BUILD TRUE                # Should the plugin be installed to a default location after building?
+        PLUGIN_MANUFACTURER_CODE Juce               # A four-character manufacturer id with at least one upper-case character
+        PLUGIN_CODE Dem0                            # A unique four-character plugin id with exactly one upper-case character
+        # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
+        FORMATS AU VST3 Standalone                  # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
+        PRODUCT_NAME "Guitar Amplifier")        # The name of the final executable, which can differ from the target name
 
 # `juce_generate_juce_header` will create a JuceHeader.h for a given target, which will be generated
 # into your build tree. This should be included with `#include <JuceHeader.h>`. The include path for
@@ -42,9 +42,15 @@ juce_add_plugin(GuitarAmplifier
 # CMake command.
 
 target_sources(GuitarAmplifier
-    PRIVATE
+        PRIVATE
         src/plugin_editor.cpp
         src/plugin_processor.cpp)
+
+add_custom_command(
+        TARGET GuitarAmplifier POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/resources/ir.wav
+        ${CMAKE_CURRENT_BINARY_DIR}/resources/ir.wav)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
@@ -54,7 +60,7 @@ target_sources(GuitarAmplifier
 # definitions, pick unique names that are unlikely to collide! This is a standard CMake command.
 
 target_compile_definitions(GuitarAmplifier
-    PUBLIC
+        PUBLIC
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
@@ -67,7 +73,9 @@ target_compile_definitions(GuitarAmplifier
 # static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
 # Conversion to binary-data will happen when your target is built.
 
-# juce_add_binary_data(AudioPluginData SOURCES ...)
+juce_add_binary_data(AudioPluginData SOURCES
+        resources/ir.wav
+)
 
 # `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
 # we're linking our executable target to the `juce::juce_audio_utils` module. Inter-module
@@ -76,10 +84,11 @@ target_compile_definitions(GuitarAmplifier
 # here too. This is a standard CMake command.
 
 target_link_libraries(GuitarAmplifier
-    PRIVATE
-        # AudioPluginData           # If we'd created a binary data target, we'd link to it here
+        PRIVATE
+        AudioPluginData
         juce::juce_audio_utils
-    PUBLIC
+        juce::juce_dsp
+        PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)

@@ -16,9 +16,11 @@ AudioPluginAudioProcessor::createParameterLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "id", "name", -24.0f, 24.0f, 0.0f));
+        kInputId, kInputName, -24.0f, 24.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kOutputId, kOutputName, -24.0f, 24.0f, 0.0f));
 
-    return { params.begin(), params.end() };
+    return {params.begin(), params.end()};
 }
 
 void AudioPluginAudioProcessor::parameterChanged(
@@ -78,10 +80,14 @@ void AudioPluginAudioProcessor::changeProgramName(
 
 void AudioPluginAudioProcessor::prepareToPlay(double sample_rate,
                                               int samples_per_block) {
-    juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sample_rate;
-    spec.maximumBlockSize = samples_per_block;
-    spec.numChannels = getTotalNumOutputChannels();
+    spec_.sampleRate = sample_rate;
+    spec_.maximumBlockSize = samples_per_block;
+    spec_.numChannels = getTotalNumOutputChannels();
+    speaker_module_.prepare(spec_);
+    speaker_module_.loadImpulseResponse(
+        BinaryData::ir_wav, BinaryData::ir_wavSize,
+        juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::yes,
+        0, juce::dsp::Convolution::Normalise::yes);
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -121,32 +127,14 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
-        auto* channelData = buffer.getWritePointer(channel);
-        juce::ignoreUnused(channelData);
-        // do something to the data
-    }
+    juce::dsp::AudioBlock<float> block{buffer};
+        speaker_module_.process(juce::dsp::ProcessContextReplacing<float>(block));
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() {
-    return new AudioPluginAudioProcessorEditor(*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 void AudioPluginAudioProcessor::getStateInformation(
