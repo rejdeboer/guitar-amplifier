@@ -3,8 +3,9 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
-#include "parameters/globals.h"
 #include "BinaryData.h"
+#include "distortion/distortion.h"
+#include "parameters/globals.h"
 
 class AudioPluginAudioProcessor final
     : public juce::AudioProcessor,
@@ -45,6 +46,9 @@ class AudioPluginAudioProcessor final
 
    private:
     juce::dsp::ProcessSpec spec_;
+    juce::dsp::Gain<float> speaker_compensate_;
+    Distortion<float> distortion_;
+    void updateParams();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String& parameter_id,
                           float new_value) override;

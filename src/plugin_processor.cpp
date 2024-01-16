@@ -7,9 +7,13 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      tree_state_(*this, nullptr, "PARAMETERS", createParameterLayout()) {}
+      tree_state_(*this, nullptr, "PARAMETERS", createParameterLayout()) {
+    tree_state_.addParameterListener(kInputId, this);
+}
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
+AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {
+    tree_state_.removeParameterListener(kInputId, this);
+}
 
 juce::AudioProcessorValueTreeState::ParameterLayout
 AudioPluginAudioProcessor::createParameterLayout() {
@@ -24,7 +28,13 @@ AudioPluginAudioProcessor::createParameterLayout() {
 }
 
 void AudioPluginAudioProcessor::parameterChanged(
-    const juce::String& parameter_id, float new_value) {}
+    const juce::String& parameter_id, float new_value) {
+    updateParams();
+}
+
+void AudioPluginAudioProcessor::updateParams() {
+    distortion_.set_drive(tree_state_.getRawParameterValue(kInputId)->load());
+}
 
 const juce::String AudioPluginAudioProcessor::getName() const {
     return JucePlugin_Name;
@@ -83,11 +93,22 @@ void AudioPluginAudioProcessor::prepareToPlay(double sample_rate,
     spec_.sampleRate = sample_rate;
     spec_.maximumBlockSize = samples_per_block;
     spec_.numChannels = getTotalNumOutputChannels();
+
     speaker_module_.prepare(spec_);
     speaker_module_.loadImpulseResponse(
         BinaryData::ir_wav, BinaryData::ir_wavSize,
         juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::yes,
         0, juce::dsp::Convolution::Normalise::yes);
+
+    speaker_compensate_.prepare(spec_);
+    speaker_compensate_.setRampDurationSeconds(0.02);
+    speaker_compensate_.setGainDecibels(6.0);
+
+    distortion_.prepare(spec_);
+    distortion_.set_drive(2.0);
+    distortion_.set_mix(0.5);
+
+    updateParams();
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -120,15 +141,18 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(
 }
 
 void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
-                                             juce::MidiBuffer& midiMessages) {
-    juce::ignoreUnused(midiMessages);
+                                             juce::MidiBuffer& midi_messages) {
+    juce::ignoreUnused(midi_messages);
 
-    juce::ScopedNoDenormals noDenormals;
+    juce::ScopedNoDenormals no_denormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     juce::dsp::AudioBlock<float> block{buffer};
-        speaker_module_.process(juce::dsp::ProcessContextReplacing<float>(block));
+    distortion_.process(juce::dsp::ProcessContextReplacing<float>(block));
+    speaker_module_.process(juce::dsp::ProcessContextReplacing<float>(block));
+    speaker_compensate_.process(
+        juce::dsp::ProcessContextReplacing<float>(block));
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const { return true; }

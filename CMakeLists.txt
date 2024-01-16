@@ -44,13 +44,8 @@ juce_add_plugin(GuitarAmplifier
 target_sources(GuitarAmplifier
         PRIVATE
         src/plugin_editor.cpp
-        src/plugin_processor.cpp)
-
-add_custom_command(
-        TARGET GuitarAmplifier POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/resources/ir.wav
-        ${CMAKE_CURRENT_BINARY_DIR}/resources/ir.wav)
+        src/plugin_processor.cpp
+        src/distortion/distortion.cpp)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
