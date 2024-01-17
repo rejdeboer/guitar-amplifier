@@ -9,10 +9,14 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       tree_state_(*this, nullptr, "PARAMETERS", createParameterLayout()) {
     tree_state_.addParameterListener(kInputId, this);
+    tree_state_.addParameterListener(kDistortionDriveId, this);
+    tree_state_.addParameterListener(kDistortionMixId, this);
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {
     tree_state_.removeParameterListener(kInputId, this);
+    tree_state_.removeParameterListener(kDistortionDriveId, this);
+    tree_state_.removeParameterListener(kDistortionMixId, this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout
@@ -23,6 +27,10 @@ AudioPluginAudioProcessor::createParameterLayout() {
         kInputId, kInputName, -24.0f, 24.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         kOutputId, kOutputName, -24.0f, 24.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kDistortionDriveId, kDistortionDriveName, 0.0f, 24.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kDistortionMixId, kDistortionMixName, 0.0f, 1.0f, 0.5f));
 
     return {params.begin(), params.end()};
 }
@@ -33,7 +41,8 @@ void AudioPluginAudioProcessor::parameterChanged(
 }
 
 void AudioPluginAudioProcessor::updateParams() {
-    distortion_.set_drive(tree_state_.getRawParameterValue(kInputId)->load());
+    distortion_.set_drive(tree_state_.getRawParameterValue(kDistortionDriveId)->load());
+    distortion_.set_mix(tree_state_.getRawParameterValue(kDistortionMixId)->load());
 }
 
 const juce::String AudioPluginAudioProcessor::getName() const {
@@ -105,7 +114,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sample_rate,
     speaker_compensate_.setGainDecibels(6.0);
 
     distortion_.prepare(spec_);
-    distortion_.set_drive(2.0);
+    distortion_.set_drive(0.0);
     distortion_.set_mix(0.5);
 
     updateParams();
