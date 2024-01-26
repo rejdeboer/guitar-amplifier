@@ -24,13 +24,13 @@ AudioPluginAudioProcessor::createParameterLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kDistortionDriveId, kDistortionDriveName, 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kDistortionMixId, kDistortionMixName, 0.0f, 1.0f, 0.5f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         kInputId, kInputName, -24.0f, 24.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         kOutputId, kOutputName, -24.0f, 24.0f, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        kDistortionDriveId, kDistortionDriveName, 0.0f, 24.0f, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        kDistortionMixId, kDistortionMixName, 0.0f, 1.0f, 0.5f));
 
     return {params.begin(), params.end()};
 }
@@ -41,8 +41,16 @@ void AudioPluginAudioProcessor::parameterChanged(
 }
 
 void AudioPluginAudioProcessor::updateParams() {
-    distortion_.set_drive(tree_state_.getRawParameterValue(kDistortionDriveId)->load());
-    distortion_.set_mix(tree_state_.getRawParameterValue(kDistortionMixId)->load());
+    distortion_.set_drive(
+        tree_state_.getRawParameterValue(kDistortionDriveId)->load());
+    distortion_.set_mix(
+        tree_state_.getRawParameterValue(kDistortionMixId)->load());
+
+    input_gain_.setGainDecibels(
+        tree_state_.getRawParameterValue(kInputId)->load());
+    output_gain_.setGainDecibels(
+        tree_state_.getRawParameterValue(kOutputId)->load() +
+        kCompensationGain);
 }
 
 const juce::String AudioPluginAudioProcessor::getName() const {
@@ -109,9 +117,11 @@ void AudioPluginAudioProcessor::prepareToPlay(double sample_rate,
         juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::yes,
         0, juce::dsp::Convolution::Normalise::yes);
 
-    speaker_compensate_.prepare(spec_);
-    speaker_compensate_.setRampDurationSeconds(0.02);
-    speaker_compensate_.setGainDecibels(6.0);
+    input_gain_.prepare(spec_);
+    input_gain_.setRampDurationSeconds(0.02);
+
+    output_gain_.prepare(spec_);
+    output_gain_.setRampDurationSeconds(0.02);
 
     distortion_.prepare(spec_);
     distortion_.set_drive(0.0);
@@ -154,14 +164,12 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ignoreUnused(midi_messages);
 
     juce::ScopedNoDenormals no_denormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     juce::dsp::AudioBlock<float> block{buffer};
     distortion_.process(juce::dsp::ProcessContextReplacing<float>(block));
+    input_gain_.process(juce::dsp::ProcessContextReplacing<float>(block));
     speaker_module_.process(juce::dsp::ProcessContextReplacing<float>(block));
-    speaker_compensate_.process(
-        juce::dsp::ProcessContextReplacing<float>(block));
+    output_gain_.process(juce::dsp::ProcessContextReplacing<float>(block));
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const { return true; }

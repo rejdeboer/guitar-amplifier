@@ -46,11 +46,15 @@ class AudioPluginAudioProcessor final
 
    private:
     juce::dsp::ProcessSpec spec_;
-    juce::dsp::Gain<float> speaker_compensate_;
+    juce::dsp::Gain<float> input_gain_;
+    juce::dsp::Gain<float> output_gain_;
     Distortion<float> distortion_;
     void updateParams();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String& parameter_id,
                           float new_value) override;
+
+    static constexpr float kCompensationGain = 6.0f;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
