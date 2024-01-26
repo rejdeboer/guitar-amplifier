@@ -12,5 +12,8 @@ const juce::String kDistortionDriveName = "Drive";
 const juce::String kDistortionMixId = "distortion-mix";
 const juce::String kDistortionMixName = "Mix";
 
-const juce::String kHqId = "hq";
-const juce::String kHqName = "High Quality";
+const juce::String kTremoloDepthId = "tremolo-depth";
+const juce::String kTremoloDepthName = "Tremolo depth";
+
+const juce::String kTremoloRateId = "tremolo-rate";
+const juce::String kTremoloRateName = "Tremolo rate";

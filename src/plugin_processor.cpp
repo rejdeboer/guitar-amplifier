@@ -9,14 +9,20 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       tree_state_(*this, nullptr, "PARAMETERS", createParameterLayout()) {
     tree_state_.addParameterListener(kInputId, this);
+    tree_state_.addParameterListener(kOutputId, this);
     tree_state_.addParameterListener(kDistortionDriveId, this);
     tree_state_.addParameterListener(kDistortionMixId, this);
+    tree_state_.addParameterListener(kTremoloDepthId, this);
+    tree_state_.addParameterListener(kTremoloRateId, this);
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {
     tree_state_.removeParameterListener(kInputId, this);
+    tree_state_.removeParameterListener(kOutputId, this);
     tree_state_.removeParameterListener(kDistortionDriveId, this);
     tree_state_.removeParameterListener(kDistortionMixId, this);
+    tree_state_.removeParameterListener(kTremoloDepthId, this);
+    tree_state_.removeParameterListener(kTremoloRateId, this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout
@@ -29,6 +35,10 @@ AudioPluginAudioProcessor::createParameterLayout() {
         kDistortionMixId, kDistortionMixName, 0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         kInputId, kInputName, -24.0f, 24.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kTremoloDepthId, kTremoloDepthName, 0.0f, 1.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        kTremoloRateId, kTremoloRateName, 1.0f, 10.0f, 1.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         kOutputId, kOutputName, -24.0f, 24.0f, 0.0f));
 
@@ -51,6 +61,11 @@ void AudioPluginAudioProcessor::updateParams() {
     output_gain_.setGainDecibels(
         tree_state_.getRawParameterValue(kOutputId)->load() +
         kCompensationGain);
+
+    tremolo_.set_depth(
+        tree_state_.getRawParameterValue(kTremoloDepthId)->load());
+    tremolo_.set_rate(
+        tree_state_.getRawParameterValue(kTremoloRateId)->load());
 }
 
 const juce::String AudioPluginAudioProcessor::getName() const {
@@ -127,6 +142,10 @@ void AudioPluginAudioProcessor::prepareToPlay(double sample_rate,
     distortion_.set_drive(0.0);
     distortion_.set_mix(0.5);
 
+    tremolo_.prepare(spec_);
+    tremolo_.set_depth(0.0);
+    tremolo_.set_rate(1.0);
+
     updateParams();
 }
 
@@ -168,6 +187,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::dsp::AudioBlock<float> block{buffer};
     distortion_.process(juce::dsp::ProcessContextReplacing<float>(block));
     input_gain_.process(juce::dsp::ProcessContextReplacing<float>(block));
+    tremolo_.process(juce::dsp::ProcessContextReplacing<float>(block));
     speaker_module_.process(juce::dsp::ProcessContextReplacing<float>(block));
     output_gain_.process(juce::dsp::ProcessContextReplacing<float>(block));
 }

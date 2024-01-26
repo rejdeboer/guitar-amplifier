@@ -5,6 +5,7 @@
 
 #include "BinaryData.h"
 #include "distortion/distortion.h"
+#include "tremolo/tremolo.h"
 #include "parameters/globals.h"
 
 class AudioPluginAudioProcessor final
@@ -49,6 +50,7 @@ class AudioPluginAudioProcessor final
     juce::dsp::Gain<float> input_gain_;
     juce::dsp::Gain<float> output_gain_;
     Distortion<float> distortion_;
+    Tremolo<float> tremolo_;
     void updateParams();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String& parameter_id,

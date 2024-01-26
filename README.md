@@ -6,6 +6,7 @@ It currently supports the following features:
 
 - Impulse response simulation
 - Very simple distortion
+- Simple tremolo effect
 
 ## Planned Features
 
