@@ -4,8 +4,7 @@ template <typename SampleType>
 Tremolo<SampleType>::Tremolo() {}
 
 template <typename SampleType>
-void Tremolo<SampleType>::prepare(
-    const juce::dsp::ProcessSpec& spec) noexcept {
+void Tremolo<SampleType>::prepare(const juce::dsp::ProcessSpec& spec) noexcept {
     sample_rate_ = spec.sampleRate;
     index_ = 0;
     reset();

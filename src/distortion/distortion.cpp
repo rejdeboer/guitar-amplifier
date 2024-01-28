@@ -1,12 +1,16 @@
 #include "distortion.h"
 
 template <typename SampleType>
-Distortion<SampleType>::Distortion() {}
+Distortion<SampleType>::Distortion() : high_pass_filter_() {}
 
 template <typename SampleType>
 void Distortion<SampleType>::prepare(
     const juce::dsp::ProcessSpec& spec) noexcept {
     sample_rate_ = spec.sampleRate;
+    high_pass_filter_.prepare(spec);
+    high_pass_filter_.coefficients =
+        juce::dsp::IIR::Coefficients<float>::makeHighPass(sample_rate_, 500.0f,
+                                                          0.1f);
     reset();
 }
 

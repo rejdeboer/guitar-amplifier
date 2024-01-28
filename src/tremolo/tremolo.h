@@ -13,23 +13,20 @@ class Tremolo {
     void reset() noexcept;
 
     template <typename ProcessContext>
-    void process (const ProcessContext& context) noexcept
-    {
+    void process(const ProcessContext& context) noexcept {
         auto&& in_block = context.getInputBlock();
         auto&& out_block = context.getOutputBlock();
 
-        jassert (in_block.getNumChannels() == out_block.getNumChannels());
-        jassert (in_block.getNumSamples() == out_block.getNumSamples());
+        jassert(in_block.getNumChannels() == out_block.getNumChannels());
+        jassert(in_block.getNumSamples() == out_block.getNumSamples());
 
-        auto len         = in_block.getNumSamples();
+        auto len = in_block.getNumSamples();
         auto num_channels = in_block.getNumChannels();
 
-        for (size_t channel = 0; channel < num_channels; ++channel)
-        {
-            for (size_t sample = 0; sample < len; ++sample)
-            {
-                auto* input = in_block.getChannelPointer (channel);
-                auto* output = out_block.getChannelPointer (channel);
+        for (size_t channel = 0; channel < num_channels; ++channel) {
+            for (size_t sample = 0; sample < len; ++sample) {
+                auto* input = in_block.getChannelPointer(channel);
+                auto* output = out_block.getChannelPointer(channel);
 
                 output[sample] = processSample(input[sample], channel);
             }
@@ -40,7 +37,11 @@ class Tremolo {
 
     SampleType processSample(SampleType input, int ch) noexcept {
         float depth = depth_.getNextValue();
-        float output = input * (1.0f - depth) + input * depth * std::sin(index_ * 2.0f * juce::MathConstants<float>::pi / sample_rate_);
+        float output =
+            input * (1.0f - depth) +
+            input * depth *
+                std::sin(index_ * 2.0f * juce::MathConstants<float>::pi /
+                         sample_rate_);
 
         index_ = (index_ + 1) % (int)(sample_rate_ / rate_.getNextValue());
         return output;
